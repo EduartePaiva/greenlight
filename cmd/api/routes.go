@@ -10,7 +10,6 @@ func (app *application) routes() http.Handler {
 	r := chi.NewRouter()
 	r.NotFound(app.notFoundResponse)
 	r.MethodNotAllowed(app.methodNotAllowedResponse)
-	r.Use(app.recoverPanic)
 
 	r.Get("/v1/healthcheck", app.healthcheckHandler)
 	r.Post("/v1/movies", app.createMovieHandler)
