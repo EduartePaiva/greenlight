@@ -19,7 +19,10 @@ type config struct {
 	port int
 	env  string
 	db   struct {
-		dns string
+		dns          string
+		maxOpenConns int
+		maxIdleConns int
+		maxIdleTime  time.Duration
 	}
 }
 
@@ -33,7 +36,11 @@ func main() {
 
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.db.dns, "db-dns", "postgres://greenlight:pa55word@localhost/greenlight", "PostgreSQL DNS")
+	flag.StringVar(&cfg.db.dns, "db-dns", os.Getenv("GREENLIGHT_DB_DNS"), "PostgreSQL DNS")
+
+	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-cons", 25, "PostgreSQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-cons", 25, "PostgreSQL max idle connections")
+	flag.DurationVar(&cfg.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "PostgreSQL max connection idle time")
 
 	flag.Parse()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -76,6 +83,10 @@ func openDB(cfg config) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(cfg.db.maxOpenConns)
+	db.SetMaxIdleConns(cfg.db.maxIdleConns)
+	db.SetConnMaxIdleTime(cfg.db.maxIdleTime)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
