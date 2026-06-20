@@ -11,3 +11,6 @@ create role greenlight with login password 'pa55word';
 
 -- create extension
 create extension if not exists citext;
+
+-- set database owner
+ALTER DATABASE greenlight OWNER TO greenlight;
