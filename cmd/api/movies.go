@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/eduartepaiva/greenlight/internal/data"
 	"github.com/eduartepaiva/greenlight/internal/validator"
 )
+
+const PAGE_LIMIT = 10
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
@@ -69,6 +72,32 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listMovieHandler(w http.ResponseWriter, r *http.Request) {
+	pageParam := r.URL.Query().Get("page")
+	if pageParam == "" {
+		pageParam = "1"
+
+	}
+	page, err := strconv.Atoi(pageParam)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
+	movies, err := app.models.Movies.List(page, PAGE_LIMIT)
+	if errors.Is(err, data.ErrRecordNotFound) {
+		app.notFoundResponse(w, r)
+		return
+	} else if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
