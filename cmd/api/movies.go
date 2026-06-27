@@ -99,7 +99,11 @@ func (app *application) listMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	movies, err := app.models.Movies.GetAll(queryInputs.Page, queryInputs.PageSize)
+	movies, err := app.models.Movies.GetAll(
+		queryInputs.Title,
+		queryInputs.Genres,
+		queryInputs.Filters,
+	)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

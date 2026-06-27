@@ -109,15 +109,35 @@ func (m MovieModel) Delete(id int64) error {
 	}
 	return nil
 }
-func (m MovieModel) GetAll(page int, pageSize int) ([]Movie, error) {
-	query := `
-	SELECT id, created_at, title, year, runtime, genres, version
-	FROM movies ORDER BY id ASC LIMIT $1 OFFSET $2`
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]Movie, error) {
+	sortDir := "ASC"
+	sort := filters.Sort
+	if sort[0] == '-' {
+		sortDir = "DESC"
+		sort = sort[1:]
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies 
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		AND (genres @> $2 OR $2 = '{}')
+		ORDER BY %s %s 
+		LIMIT $3 
+		OFFSET $4`, sort, sortDir,
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, pageSize, (page-1)*pageSize)
+	rows, err := m.DB.QueryContext(
+		ctx,
+		query,
+		title,
+		pq.Array(genres),
+		filters.PageSize,
+		(filters.Page-1)*filters.PageSize,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +156,6 @@ func (m MovieModel) GetAll(page int, pageSize int) ([]Movie, error) {
 			pq.Array(&movie.Genres),
 			&movie.Version,
 		)
-		fmt.Println(movie)
 		if err != nil {
 			return nil, err
 		}
