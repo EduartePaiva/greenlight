@@ -109,19 +109,22 @@ func (m MovieModel) Delete(id int64) error {
 	}
 	return nil
 }
-func (m MovieModel) List(page int, pageSize int) ([]Movie, error) {
-	if page < 1 {
-		return nil, ErrRecordNotFound
-	}
+func (m MovieModel) GetAll(page int, pageSize int) ([]Movie, error) {
 	query := `
 	SELECT id, created_at, title, year, runtime, genres, version
-	FROM movies LIMIT $1 OFFSET $2`
+	FROM movies ORDER BY id ASC LIMIT $1 OFFSET $2`
 
-	rows, err := m.DB.Query(query, pageSize, (page-1)*pageSize)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, pageSize, (page-1)*pageSize)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	movies := []Movie{}
+
 	for rows.Next() {
 		movie := Movie{}
 		err := rows.Scan(
@@ -138,6 +141,10 @@ func (m MovieModel) List(page int, pageSize int) ([]Movie, error) {
 			return nil, err
 		}
 		movies = append(movies, movie)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return movies, nil

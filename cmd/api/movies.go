@@ -4,13 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/eduartepaiva/greenlight/internal/data"
 	"github.com/eduartepaiva/greenlight/internal/validator"
 )
-
-const PAGE_LIMIT = 10
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
@@ -78,21 +75,32 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) listMovieHandler(w http.ResponseWriter, r *http.Request) {
-	pageParam := r.URL.Query().Get("page")
-	if pageParam == "" {
-		pageParam = "1"
-
-	}
-	page, err := strconv.Atoi(pageParam)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
+	var queryInputs struct {
+		Title  string
+		Genres []string
+		data.Filters
 	}
 
-	movies, err := app.models.Movies.List(page, PAGE_LIMIT)
-	if errors.Is(err, data.ErrRecordNotFound) {
-		app.notFoundResponse(w, r)
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	queryInputs.Title = app.readString(qs, "title", "")
+	queryInputs.Genres = app.readCSV(qs, "genres", []string{})
+	queryInputs.Page = app.readInt(r.URL.Query(), "page", 1, v)
+	queryInputs.PageSize = app.readInt(r.URL.Query(), "page_size", 20, v)
+	queryInputs.Sort = app.readString(qs, "sort", "id")
+	queryInputs.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	data.ValidateFilters(v, queryInputs.Filters)
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
-	} else if err != nil {
+	}
+
+	movies, err := app.models.Movies.GetAll(queryInputs.Page, queryInputs.PageSize)
+	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
