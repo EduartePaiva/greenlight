@@ -8,6 +8,12 @@ import (
 
 func (app *application) routes() http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(app.recoverPanic)
+	if app.config.limiter.enabled {
+		r.Use(app.rateLimit)
+	}
+
 	r.NotFound(app.notFoundResponse)
 	r.MethodNotAllowed(app.methodNotAllowedResponse)
 
@@ -18,5 +24,5 @@ func (app *application) routes() http.Handler {
 	r.Patch("/v1/movies/{id}", app.updateMovieHandler)
 	r.Delete("/v1/movies/{id}", app.deleteMovieHandler)
 
-	return app.recoverPanic(app.rateLimit(r))
+	return r
 }
