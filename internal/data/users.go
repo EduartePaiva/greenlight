@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -8,6 +9,10 @@ import (
 	"github.com/eduartepaiva/greenlight/internal/validator"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrDuplicateEmail = errors.New("duplicate email")
 )
 
 type User struct {
@@ -76,4 +81,35 @@ func (p *password) Matches(plaintextPassword string) (bool, error) {
 
 type UserModel struct {
 	DB *sql.DB
+}
+
+func (u UserModel) Insert(user *User) error {
+	query := `
+		INSERT INTO users(name, email, password_hash, activated) 
+		VALUES ($1, $2, $3, $4) 
+		RETURNING id, created_at, version`
+
+	args := []any{user.Name, user.Email, user.Password.hash, user.Activated}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (u UserModel) GetByEmail(email string) (*User, error) {
+	return nil, nil
+}
+
+func (u UserModel) Update(user *User) error {
+	return nil
 }
