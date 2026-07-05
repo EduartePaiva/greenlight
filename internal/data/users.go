@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/eduartepaiva/greenlight/internal/validator"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
+	"github.com/lib/pq/pqerror"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -95,9 +96,15 @@ func (u UserModel) Insert(user *User) error {
 	defer cancel()
 
 	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
+	var errPostgres *pq.Error
+
 	if err != nil {
 		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrRecordNotFound
+		case errors.As(err, &errPostgres) &&
+			errPostgres.Code == pqerror.UniqueViolation &&
+			errPostgres.Constraint == "users_email_key":
 			return ErrDuplicateEmail
 		default:
 			return err
@@ -148,11 +155,15 @@ func (u UserModel) Update(user *User) error {
 	defer cancel()
 
 	err := u.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
+	var errPostgres *pq.Error
+
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			return ErrRecordNotFound
-		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+		case errors.As(err, &errPostgres) &&
+			errPostgres.Code == pqerror.UniqueViolation &&
+			errPostgres.Constraint == "users_email_key":
 			return ErrDuplicateEmail
 		default:
 			return err

@@ -27,7 +27,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		Activated: false,
 	}
 
-	// TODO: we should validate password before calling .set
+	// TODO: we should validate password before calling .set, if password len > 72 it will raise a bcrypt error
 	err = user.Password.Set(input.Password)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
