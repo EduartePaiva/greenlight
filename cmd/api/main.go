@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/eduartepaiva/greenlight/internal/data"
+	"github.com/eduartepaiva/greenlight/internal/mailer"
 	_ "github.com/lib/pq"
 )
 
@@ -29,12 +30,20 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *slog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -52,6 +61,12 @@ func main() {
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 2, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
+	flag.StringVar(&cfg.smtp.host, "smtp-host", os.Getenv("SMTP_HOST"), "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 25, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTP_USERNAME"), "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTP_PASSWORD"), "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", `"Greenlight" <no-reply@greenlight.eduarte.pro>`, "SMTP sender")
+
 	flag.Parse()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -68,6 +83,13 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(
+			cfg.smtp.host,
+			cfg.smtp.port,
+			cfg.smtp.username,
+			cfg.smtp.password,
+			cfg.smtp.sender,
+		),
 	}
 
 	err = app.serve()

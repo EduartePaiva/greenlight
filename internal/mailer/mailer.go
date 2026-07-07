@@ -27,6 +27,7 @@ func New(host string, port int, username, password, sender string) Mailer {
 		mail.WithSMTPAuth(mail.SMTPAuthPlain),
 		mail.WithTLSPolicy(mail.TLSMandatory),
 		mail.WithTimeout(5*time.Second),
+		mail.WithDebugLog(),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("misconfigured mail client error: %v", err))
@@ -62,12 +63,22 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 		return err
 	}
 
-	message := mail.NewMsg()
-	err = message.From("greenlight@example.com")
+	msg := mail.NewMsg()
+	err = msg.From(m.sender)
 	if err != nil {
 		return err
 	}
-	err = message.To(recipient)
+
+	err = msg.To(recipient)
+	if err != nil {
+		return err
+	}
+
+	msg.Subject(subject.String())
+	msg.SetBodyWriter(mail.TypeTextPlain, plainBody.WriteTo)
+	msg.AddAlternativeWriter(mail.TypeTextHTML, htmlBody.WriteTo)
+
+	err = m.client.DialAndSend(msg)
 	if err != nil {
 		return err
 	}
