@@ -26,6 +26,7 @@ func (app *application) routes() http.Handler {
 	r.Delete("/v1/movies/{id}", app.deleteMovieHandler)
 
 	r.Post("/v1/users", app.registerUserHandler)
+	r.Post("/v1/tokens/activation", app.createActivationTokenHandler)
 
 	return r
 }
