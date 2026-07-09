@@ -79,3 +79,43 @@ func (m TokenModel) DeleteAllForUser(userID int64, scope Scope) error {
 
 	return err
 }
+
+func (m TokenModel) GetAllForUser(userID int64) ([]Token, error) {
+	query := `
+		SELECT tokens.hash, tokens.user_id, tokens.expiry, tokens.scope
+		FROM users
+		RIGHT JOIN tokens
+		ON users.id = tokens.user_id
+		WHERE users.id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tokens := []Token{}
+
+	for rows.Next() {
+		token := Token{}
+		err := rows.Scan(
+			&token.Hash,
+			&token.UserID,
+			&token.Expiry,
+			&token.Scope,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tokens = append(tokens, token)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}

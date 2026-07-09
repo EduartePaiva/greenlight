@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"time"
@@ -142,6 +143,42 @@ func (u UserModel) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
+func (u UserModel) GetForToken(tokenScope Scope, tokenPlaintext string) (*User, error) {
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+
+	query := `SELECT users.id, users.created_at, users.name, users.email, users.password_hash, users.activated, users.version 
+	FROM users 
+	INNER JOIN tokens
+	ON users.id = tokens.user_id
+	WHERE tokens.hash = $1
+	AND tokens.scope = $2
+	AND tokens.expiry > $3`
+
+	var user User
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	args := []any{tokenHash[:], tokenScope, time.Now()}
+
+	err := u.DB.QueryRowContext(ctx, query, args...).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrRecordNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func (u UserModel) Update(user *User) error {
 	query := `
 		UPDATE users 
@@ -160,7 +197,7 @@ func (u UserModel) Update(user *User) error {
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			return ErrRecordNotFound
+			return ErrEditConflict
 		case errors.As(err, &errPostgres) &&
 			errPostgres.Code == pqerror.UniqueViolation &&
 			errPostgres.Constraint == "users_email_key":
