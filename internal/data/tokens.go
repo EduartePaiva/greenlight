@@ -14,7 +14,7 @@ type Scope string
 
 const (
 	ScopeActivation     Scope = "activation"
-	ScopeAuthentication       = "authentication"
+	ScopeAuthentication Scope = "authentication"
 )
 
 type Token struct {
