@@ -13,6 +13,7 @@ func (app *application) routes() http.Handler {
 	if app.config.limiter.enabled {
 		r.Use(app.rateLimit)
 	}
+	r.Use(app.authenticate)
 
 	r.NotFound(app.notFoundResponse)
 	r.MethodNotAllowed(app.methodNotAllowedResponse)
