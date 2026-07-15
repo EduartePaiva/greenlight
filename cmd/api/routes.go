@@ -20,15 +20,11 @@ func (app *application) routes() http.Handler {
 
 	r.Get("/v1/healthcheck", app.healthcheckHandler)
 
-	r.Group(func(r chi.Router) {
-		r.Use(app.requireActivatedUser)
-
-		r.Post("/v1/movies", app.createMovieHandler)
-		r.Get("/v1/movies", app.listMovieHandler)
-		r.Get("/v1/movies/{id}", app.showMovieHandler)
-		r.Patch("/v1/movies/{id}", app.updateMovieHandler)
-		r.Delete("/v1/movies/{id}", app.deleteMovieHandler)
-	})
+	r.With(app.requirePermission("movies:write")).Post("/v1/movies", app.createMovieHandler)
+	r.With(app.requirePermission("movies:read")).Get("/v1/movies", app.listMovieHandler)
+	r.With(app.requirePermission("movies:read")).Get("/v1/movies/{id}", app.showMovieHandler)
+	r.With(app.requirePermission("movies:write")).Patch("/v1/movies/{id}", app.updateMovieHandler)
+	r.With(app.requirePermission("movies:write")).Delete("/v1/movies/{id}", app.deleteMovieHandler)
 
 	r.Post("/v1/users", app.registerUserHandler)
 	r.Put("/v1/users/activated", app.activateUserHandler)
