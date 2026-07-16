@@ -10,6 +10,7 @@ func (app *application) routes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(app.recoverPanic)
+	r.Use(app.EnableCORS)
 	if app.config.limiter.enabled {
 		r.Use(app.rateLimit)
 	}

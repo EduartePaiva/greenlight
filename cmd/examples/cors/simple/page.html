@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cors Example</title>
+</head>
+
+<body>
+    <h1>Simple CORS</h1>
+    <div id="output"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch("http://localhost:4000/v1/healthcheck")
+                .then(
+                    (r) => r.text(),
+                    (err) => document.getElementById("output").innerHTML = err
+                )
+                .then((text) => document.getElementById("output").innerHTML = text)
+        })
+    </script>
+</body>
+
+</html>
