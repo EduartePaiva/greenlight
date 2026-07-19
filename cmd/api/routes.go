@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,8 +10,9 @@ import (
 func (app *application) routes() http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(app.metrics)
 	r.Use(app.recoverPanic)
-	r.Use(app.EnableCORS)
+	r.Use(app.enableCORS)
 	if app.config.limiter.enabled {
 		r.Use(app.rateLimit)
 	}
@@ -32,6 +34,8 @@ func (app *application) routes() http.Handler {
 
 	r.Post("/v1/tokens/activation", app.createActivationTokenHandler)
 	r.Post("/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+
+	r.Get("/debug/vars", expvar.Handler().ServeHTTP)
 
 	return r
 }
