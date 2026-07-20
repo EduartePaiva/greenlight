@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -217,7 +218,7 @@ func (mw *metricsResponseWriter) Header() http.Header {
 }
 
 func (mw *metricsResponseWriter) WriteHeader(statusCode int) {
-	mw.WriteHeader(statusCode)
+	mw.wrapped.WriteHeader(statusCode)
 
 	if !mw.headerWritten {
 		mw.statusCode = statusCode
@@ -225,9 +226,9 @@ func (mw *metricsResponseWriter) WriteHeader(statusCode int) {
 	}
 }
 
-func (mw *metricsResponseWriter) Write(b []byte) {
+func (mw *metricsResponseWriter) Write(b []byte) (int, error) {
 	mw.headerWritten = true
-	mw.wrapped.Write(b)
+	return mw.wrapped.Write(b)
 }
 
 func (mw *metricsResponseWriter) Unwrap() http.ResponseWriter {
@@ -239,6 +240,7 @@ func (app *application) metrics(next http.Handler) http.Handler {
 		totalRequestReceived            = expvar.NewInt("total_requests_received")
 		totalResponsesSent              = expvar.NewInt("total_responses_sent")
 		totalProcessingTimeMicroseconds = expvar.NewInt("total_processing_time_μs")
+		totalResponsesSentByStatus      = expvar.NewMap("total_responses_sent_by_status")
 	)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -246,9 +248,13 @@ func (app *application) metrics(next http.Handler) http.Handler {
 
 		totalRequestReceived.Add(1)
 
-		next.ServeHTTP(w, r)
+		mw := newMetricsResponseWriter(w)
+
+		next.ServeHTTP(mw, r)
 
 		totalResponsesSent.Add(1)
+
+		totalResponsesSentByStatus.Add(strconv.Itoa(mw.statusCode), 1)
 
 		duration := time.Since(start).Microseconds()
 		totalProcessingTimeMicroseconds.Add(duration)
