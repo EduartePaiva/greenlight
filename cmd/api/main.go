@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
-	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
@@ -128,9 +127,6 @@ func main() {
 
 func openDB(cfg config) (*sql.DB, error) {
 	dns := cfg.db.dns
-	if cfg.env == "development" {
-		dns = fmt.Sprintf("%s?sslmode=disable", dns)
-	}
 	db, err := sql.Open("postgres", dns)
 	if err != nil {
 		return nil, err
