@@ -65,10 +65,11 @@ apt --yes install postgresql
 sudo -i -u postgres psql -c "CREATE DATABASE greenlight"
 sudo -i -u postgres psql -d greenlight -c "CREATE EXTENSION IF NOT EXISTS citext"
 sudo -i -u postgres psql -d greenlight -c "CREATE ROLE greenlight WITH LOGIN PASSWORD '${DB_PASSWORD}'"
+sudo -i -u postgres psql -c "ALTER DATABASE greenlight OWNER TO greenlight"
 
 # Add a DSN for connecting to the greenlight database to the system-wide environment 
 # variables in the /etc/environment file.
-echo "GREENLIGHT_DB_DSN='postgres://greenlight:${DB_PASSWORD}@localhost/greenlight'" >> /etc/environment
+echo "GREENLIGHT_DB_DNS='postgres://greenlight:${DB_PASSWORD}@localhost/greenlight'" >> /etc/environment
 
 # Install Caddy (see https://caddyserver.com/docs/install#debian-ubuntu-raspbian).
 apt install -y debian-keyring debian-archive-keyring apt-transport-https
