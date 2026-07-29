@@ -1,0 +1,8 @@
+{
+    email eduarteoliveira2021@gmail.com
+}
+
+mc-abyssal.eduarte.pro {
+    respond /debug/* "Not Permitted" 403
+    reverse_proxy localhost:4000
+}
