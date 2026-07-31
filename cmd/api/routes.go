@@ -31,9 +31,11 @@ func (app *application) routes() http.Handler {
 
 	r.Post("/v1/users", app.registerUserHandler)
 	r.Put("/v1/users/activated", app.activateUserHandler)
+	r.Put("/v1/users/password", app.updateUserPasswordHandler)
 
 	r.Post("/v1/tokens/activation", app.createActivationTokenHandler)
 	r.Post("/v1/tokens/authentication", app.createAuthenticationTokenHandler)
+	r.Post("/v1/tokens/password-reset", app.createPasswordResetTokenHandler)
 
 	r.Get("/debug/vars", expvar.Handler().ServeHTTP)
 

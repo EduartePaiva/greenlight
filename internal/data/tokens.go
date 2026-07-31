@@ -15,6 +15,7 @@ type Scope string
 const (
 	ScopeActivation     Scope = "activation"
 	ScopeAuthentication Scope = "authentication"
+	ScopePasswordReset  Scope = "password-reset"
 )
 
 type Token struct {
