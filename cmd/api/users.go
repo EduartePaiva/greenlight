@@ -181,7 +181,9 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		app.serverErrorResponse(w, r, err)
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"message": "your password was successfully reset"}, nil)
+	env := envelope{"message": "your password was successfully reset"}
+
+	err = app.writeJSON(w, http.StatusOK, env, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
