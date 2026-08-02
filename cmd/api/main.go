@@ -45,6 +45,11 @@ type config struct {
 	cors struct {
 		trustedOrigins []string
 	}
+	jwt struct {
+		secret    string
+		issuer    string
+		audiences string
+	}
 }
 
 type application struct {
@@ -82,6 +87,10 @@ func main() {
 	})
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
+
+	flag.StringVar(&cfg.jwt.secret, "jwt-secret", os.Getenv("JWT_SECRET"), "JWT secret")
+	flag.StringVar(&cfg.jwt.secret, "jwt-issuer", "greenlight", "JWT secret")
+	flag.StringVar(&cfg.jwt.secret, "jwt-audience", "greenlight", "JWT secret")
 
 	flag.Parse()
 
